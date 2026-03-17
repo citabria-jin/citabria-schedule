@@ -447,8 +447,10 @@ async function loadResults() {
       const ok = dayResp.filter(r => r.answer === 'ok').length;
       const maybe = dayResp.filter(r => r.answer === 'maybe').length;
       const pct = allRespondents.length > 0 ? Math.round((ok / allRespondents.length) * 100) : 0;
-      const comments = dayResp.filter(r => r.comment).map(r => `<span style="color:var(--muted)">${r.member_name}：</span>${r.comment}`).join('<br>');
-      tableRows += `<tr><td style="font-weight:500">${label}</td><td style="color:var(--navy);font-weight:500">${ok}人</td><td style="color:var(--gold)">${maybe}人</td><td><div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div></td><td><span class="badge ${pct>=60?'badge-ok':'badge-warn'}">${pct>=60?'候補':'再調整'}</span></td></tr>${comments?`<tr><td colspan="5" style="font-size:12px;color:var(--text);padding:4px 6px 10px;line-height:1.8">${comments}</td></tr>`:''}`;
+      const sym = {'ok':'○','maybe':'△','ng':'×'};
+      const col = {'ok':'var(--navy)','maybe':'var(--gold)','ng':'#c0392b'};
+      const memberList = dayResp.map(r => `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:12px;font-size:12px"><span style="color:${col[r.answer]};font-weight:500">${sym[r.answer]}</span><span>${r.member_name}</span>${r.comment?`<span style="color:var(--muted)">（${r.comment}）</span>`:''}</span>`).join('');
+      tableRows += `<tr><td style="font-weight:500">${label}</td><td style="color:var(--navy);font-weight:500">${ok}人</td><td style="color:var(--gold)">${maybe}人</td><td><div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div></td><td><span class="badge ${pct>=60?'badge-ok':'badge-warn'}">${pct>=60?'候補':'再調整'}</span></td></tr>${memberList?`<tr><td colspan="5" style="padding:4px 6px 10px;line-height:2">${memberList}</td></tr>`:''}`;
     });
 
     const avatars = allRespondents.map(n => `<div class="avatar" title="${n}">${n.slice(0,2)}</div>`).join('');
