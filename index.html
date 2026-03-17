@@ -127,30 +127,23 @@
   <div class="card">
     <span class="label">時間帯（任意）</span>
     <div class="chips">
-      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'午前')">午前</button>
-      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'午後')">午後</button>
-      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'夜')">夜</button>
       <button class="chip gold" onclick="toggleChip(this,selectedSlots,'10:00')">10:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'10:30')">10:30</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'11:00')">11:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'11:30')">11:30</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'12:00')">12:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'12:30')">12:30</button>
       <button class="chip gold" onclick="toggleChip(this,selectedSlots,'13:00')">13:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'13:30')">13:30</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'14:00')">14:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'14:30')">14:30</button>
       <button class="chip gold" onclick="toggleChip(this,selectedSlots,'15:00')">15:00</button>
-      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'18:00')">18:00</button>
-      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'20:00')">20:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'15:30')">15:30</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'16:00')">16:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'16:30')">16:30</button>
     </div>
   </div>
-  <div class="card">
-    <span class="label">参加者（任意・メモ用）</span>
-    <div class="chips">
-      <button class="chip" onclick="toggleChip(this,selectedMembers,'村田')">村田</button>
-      <button class="chip" onclick="toggleChip(this,selectedMembers,'新井')">新井</button>
-      <button class="chip" onclick="toggleChip(this,selectedMembers,'青木')">青木</button>
-      <button class="chip" onclick="toggleChip(this,selectedMembers,'佐藤')">佐藤</button>
-      <button class="chip" onclick="toggleChip(this,selectedMembers,'亀山')">亀山</button>
-      <button class="chip" onclick="toggleChip(this,selectedMembers,'吉田')">吉田</button>
-      <button class="chip" onclick="toggleChip(this,selectedMembers,'中里')">中里</button>
-      <button class="chip" onclick="toggleChip(this,selectedMembers,'洞内')">洞内</button>
-    </div>
-    <p class="info-note">※ 回答者は「回答する」タブで名前を入力して ○△× を押します</p>
-  </div>
+
   <div class="card">
     <button class="btn" id="publish-btn" onclick="publishEvent()">共有リンクを発行する</button>
   </div>
@@ -178,6 +171,10 @@
     </div>
   </div>
   <div id="step2" style="display:none">
+    <div class="card" style="background:rgba(27,58,92,0.04);border-color:rgba(27,58,92,0.15)">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:4px">イベント</p>
+      <p style="font-size:16px;font-weight:500;color:var(--navy)" id="event-name-display"></p>
+    </div>
     <div class="card">
       <span class="label">あなたの名前</span>
       <input class="name-big" type="text" id="resp-name" placeholder="名前を入力…">
@@ -359,6 +356,7 @@ async function loadEvent() {
     currentEventId = data[0].id;
     currentEventDates = data[0].dates;
     selectedSlots = data[0].slots || [];
+    document.getElementById('event-name-display').textContent = data[0].name;
     document.getElementById('step1').style.display = 'none';
     document.getElementById('step2').style.display = 'block';
   } catch(e) { alert('読み込みエラー: ' + e.message); }
