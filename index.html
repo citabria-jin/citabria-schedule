@@ -384,7 +384,7 @@ function renderDateRows() {
     const timeLabel = selectedSlots.length > 0 ? selectedSlots.join('・') : '';
     const row = document.createElement('div');
     row.className = 'date-row';
-    row.innerHTML = `<div><div class="date-text">${label}</div>${timeLabel ? '<div class="date-time">'+timeLabel+'</div>' : ''}</div><div class="resp-group"><button class="resp-btn" id="ok-${d}" onclick="setResp('${d}','ok')">○</button><button class="resp-btn" id="maybe-${d}" onclick="setResp('${d}','maybe')">△</button><button class="resp-btn" id="ng-${d}" onclick="setResp('${d}','ng')">×</button></div>`;
+    row.innerHTML = `<div style="width:100%"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div><div class="date-text">${label}</div>${timeLabel ? '<div class="date-time">'+timeLabel+'</div>' : ''}</div><div class="resp-group"><button class="resp-btn" id="ok-${d}" onclick="setResp('${d}','ok')">○</button><button class="resp-btn" id="maybe-${d}" onclick="setResp('${d}','maybe')">△</button><button class="resp-btn" id="ng-${d}" onclick="setResp('${d}','ng')">×</button></div></div><input type="text" id="comment-${d}" placeholder="コメント（任意）" style="font-size:12px;padding:7px 10px;"></div>`;
     container.appendChild(row);
   });
 }
@@ -407,7 +407,7 @@ async function submitResponse() {
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = '送信中…';
   try {
-    const rows = currentEventDates.map(d => ({ event_id: currentEventId, member_name: name, date: d, answer: myResps[d] || 'ng' }));
+    const rows = currentEventDates.map(d => ({ event_id: currentEventId, member_name: name, date: d, answer: myResps[d] || 'ng', comment: document.getElementById('comment-'+d)?.value.trim() || '' }));
     await sbFetch('responses', { method: 'POST', body: JSON.stringify(rows) });
     document.getElementById('step3').style.display = 'none';
     document.getElementById('step4').style.display = 'block';
