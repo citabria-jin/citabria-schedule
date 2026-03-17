@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CITABRIA 日程調整</title>
+<style>
+  :root {
+    --navy: #1B3A5C;
+    --gold: #C8973A;
+    --navy-light: rgba(27,58,92,0.08);
+    --gold-light: rgba(200,151,58,0.1);
+    --bg: #F7F5F2;
+    --white: #ffffff;
+    --text: #1a1a1a;
+    --muted: #888;
+    --border: #e0ddd8;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header { background: var(--navy); color: white; padding: 18px 20px 14px; display: flex; align-items: baseline; gap: 12px; }
+  .header h1 { font-size: 17px; font-weight: 500; letter-spacing: 0.05em; }
+  .header span { font-size: 11px; opacity: 0.6; }
+  .tabs { background: var(--white); border-bottom: 1px solid var(--border); display: flex; padding: 0 12px; }
+  .tab-btn { padding: 13px 16px; font-size: 13px; font-family: inherit; border: none; background: none; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 500; }
+  .content { padding: 14px; max-width: 560px; margin: 0 auto; }
+  .card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px; margin-bottom: 12px; }
+  .label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; display: block; }
+  input[type="text"] { width: 100%; padding: 10px 13px; font-size: 15px; font-family: inherit; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; transition: border-color 0.2s; background: var(--bg); color: var(--text); }
+  input[type="text"]:focus { border-color: var(--navy); background: white; }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-nav button { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font-size: 15px; }
+  .cal-title { font-size: 14px; font-weight: 500; color: var(--navy); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-header { text-align: center; font-size: 11px; color: var(--muted); padding: 4px 0; }
+  .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; color: var(--muted); border: 1px solid transparent; }
+  .cal-day:hover { background: var(--navy-light); color: var(--navy); }
+  .cal-day.today { border-color: var(--navy); color: var(--navy); font-weight: 500; }
+  .cal-day.selected { background: var(--navy); color: white; }
+  .cal-day.other-month, .cal-day.past { opacity: 0.25; pointer-events: none; }
+  .sel-text { font-size: 12px; color: var(--navy); margin-top: 8px; min-height: 16px; line-height: 1.6; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 6px 13px; font-size: 12px; font-family: inherit; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; color: var(--muted); background: var(--bg); }
+  .chip:hover { border-color: var(--navy); color: var(--navy); }
+  .chip.sel { background: var(--navy); color: white; border-color: var(--navy); }
+  .chip.gold.sel { background: var(--gold); border-color: var(--gold); color: white; }
+  .btn { width: 100%; padding: 13px; font-size: 14px; font-family: inherit; font-weight: 500; background: var(--navy); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; }
+  .btn:hover { opacity: 0.88; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-sub { width: 100%; padding: 11px; font-size: 13px; font-family: inherit; background: white; color: var(--navy); border: 1px solid var(--navy); border-radius: var(--radius-sm); cursor: pointer; margin-top: 8px; }
+  .error { font-size: 12px; color: #c0392b; margin-top: 6px; display: none; }
+  .share-box { background: var(--navy-light); border: 1px solid rgba(27,58,92,0.2); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+  .share-url { font-size: 13px; color: var(--navy); font-weight: 500; word-break: break-all; }
+  .copy-btn { padding: 6px 12px; font-size: 12px; font-family: inherit; border: 1px solid var(--navy); border-radius: 6px; background: white; color: var(--navy); cursor: pointer; white-space: nowrap; }
+  .name-big { font-size: 22px; font-weight: 300; border: none; border-bottom: 2px solid var(--navy); border-radius: 0; background: transparent; padding: 8px 0; width: 100%; outline: none; color: var(--navy); font-family: inherit; }
+  .name-big::placeholder { color: #ccc; }
+  .who-badge { background: var(--navy); color: white; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-block; margin-bottom: 10px; }
+  .date-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .date-row:last-child { border-bottom: none; }
+  .date-text { font-size: 14px; }
+  .date-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .resp-group { display: flex; gap: 6px; }
+  .resp-btn { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: inherit; }
+  .resp-btn:hover { border-color: var(--navy); color: var(--navy); }
+  .resp-btn.ok { background: var(--navy); border-color: var(--navy); color: white; }
+  .resp-btn.maybe { background: var(--gold-light); border-color: var(--gold); color: var(--gold); }
+  .resp-btn.ng { background: rgba(192,57,43,0.08); border-color: #c0392b; color: #c0392b; }
+  .prog-wrap { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 12px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--navy); border-radius: 2px; transition: width 0.3s; }
+  .prog-text { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .done-msg { text-align: center; padding: 20px 0 8px; }
+  .done-icon { width: 46px; height: 46px; border-radius: 50%; background: var(--navy); color: white; font-size: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+  .done-msg h3 { font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 4px; }
+  .done-msg p { font-size: 13px; color: var(--muted); }
+  .results-table { width: 100%; border-collapse: collapse; }
+  .results-table th { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 6px 6px; border-bottom: 1px solid var(--border); }
+  .results-table td { padding: 10px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 13px; }
+  .results-table tr:last-child td { border-bottom: none; }
+  .bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 48px; }
+  .bar-fill { height: 100%; background: var(--navy); border-radius: 3px; }
+  .badge { display: inline-block; padding: 3px 9px; font-size: 11px; border-radius: 10px; font-weight: 500; }
+  .badge-ok { background: var(--navy-light); color: var(--navy); }
+  .badge-warn { background: var(--gold-light); color: var(--gold); }
+  .avatars { display: flex; flex-wrap: wrap; gap: 6px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--navy-light); color: var(--navy); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+  .empty-state { text-align: center; padding: 28px 0; color: var(--muted); font-size: 13px; line-height: 1.8; }
+  .loading { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .info-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>CITABRIA 日程調整</h1>
+  <span>スタッフのスケジュール調整</span>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('create',this)">イベント作成</button>
+  <button class="tab-btn" onclick="showTab('respond',this)">回答する</button>
+  <button class="tab-btn" onclick="showTab('results',this)">集計結果</button>
+</div>
+
+<!-- CREATE -->
+<div id="tab-create" class="tab-content active">
+<div class="content">
+  <div class="card">
+    <span class="label">イベント名</span>
+    <input type="text" id="event-name" placeholder="例：4月シフト打ち合わせ">
+    <div class="error" id="err-name">イベント名を入力してください</div>
+  </div>
+  <div class="card">
+    <div class="cal-nav">
+      <button onclick="changeMonth(-1)">‹</button>
+      <span class="cal-title" id="cal-title"></span>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="sel-text" id="sel-text"></div>
+    <div class="error" id="err-dates">候補日を1日以上選択してください</div>
+  </div>
+  <div class="card">
+    <span class="label">時間帯（任意）</span>
+    <div class="chips">
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'午前')">午前</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'午後')">午後</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'夜')">夜</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'10:00')">10:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'13:00')">13:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'15:00')">15:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'18:00')">18:00</button>
+      <button class="chip gold" onclick="toggleChip(this,selectedSlots,'20:00')">20:00</button>
+    </div>
+  </div>
+  <div class="card">
+    <span class="label">参加者（任意・メモ用）</span>
+    <div class="chips">
+      <button class="chip" onclick="toggleChip(this,selectedMembers,'村田')">村田</button>
+      <button class="chip" onclick="toggleChip(this,selectedMembers,'新井')">新井</button>
+      <button class="chip" onclick="toggleChip(this,selectedMembers,'青木')">青木</button>
+      <button class="chip" onclick="toggleChip(this,selectedMembers,'佐藤')">佐藤</button>
+      <button class="chip" onclick="toggleChip(this,selectedMembers,'亀山')">亀山</button>
+      <button class="chip" onclick="toggleChip(this,selectedMembers,'吉田')">吉田</button>
+      <button class="chip" onclick="toggleChip(this,selectedMembers,'中里')">中里</button>
+      <button class="chip" onclick="toggleChip(this,selectedMembers,'洞内')">洞内</button>
+    </div>
+    <p class="info-note">※ 回答者は「回答する」タブで名前を入力して ○△× を押します</p>
+  </div>
+  <div class="card">
+    <button class="btn" id="publish-btn" onclick="publishEvent()">共有リンクを発行する</button>
+  </div>
+  <div class="card" id="share-card" style="display:none; border-color:rgba(27,58,92,0.3)">
+    <span class="label">共有リンク — このURLをスタッフに送ってください</span>
+    <div class="share-box">
+      <span class="share-url" id="share-url"></span>
+      <button class="copy-btn" onclick="copyUrl()">コピー</button>
+    </div>
+    <p id="copied-msg" style="font-size:12px;color:var(--navy);margin-top:6px;display:none">コピーしました！</p>
+  </div>
+</div>
+</div>
+
+<!-- RESPOND -->
+<div id="tab-respond" class="tab-content">
+<div class="content">
+  <div id="step1">
+    <div class="card">
+      <span class="label">イベントIDを入力</span>
+      <input type="text" id="event-id-input" placeholder="主催者から共有されたIDを入力…">
+      <p class="info-note" style="margin-top:8px">共有URLの末尾の文字列です</p>
+      <div class="error" id="err-event-id">イベントIDを入力してください</div>
+      <button class="btn" style="margin-top:12px" onclick="loadEvent()">イベントを読み込む</button>
+    </div>
+  </div>
+  <div id="step2" style="display:none">
+    <div class="card">
+      <span class="label">あなたの名前</span>
+      <input class="name-big" type="text" id="resp-name" placeholder="名前を入力…">
+      <p class="info-note" style="margin-top:8px">例：村田、中里 — 呼ばれ方でOK</p>
+      <div class="error" id="err-resp-name">お名前を入力してください</div>
+      <button class="btn" style="margin-top:14px" onclick="goStep3()">次へ → 日程に回答する</button>
+    </div>
+  </div>
+  <div id="step3" style="display:none">
+    <div class="card" style="background:rgba(27,58,92,0.04);border-color:rgba(27,58,92,0.15)">
+      <span class="who-badge" id="who-badge"></span>
+      <p style="font-size:12px;color:var(--muted)">各日程に ○（参加できる）△（たぶんOK）×（難しい）を押してください</p>
+    </div>
+    <div class="card">
+      <div class="prog-text" id="prog-text"></div>
+      <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      <div id="date-rows"></div>
+      <button class="btn" style="margin-top:14px" id="submit-btn" onclick="submitResponse()">回答を送信する</button>
+    </div>
+  </div>
+  <div id="step4" style="display:none">
+    <div class="card">
+      <div class="done-msg">
+        <div class="done-icon">✓</div>
+        <h3>回答を送信しました</h3>
+        <p>ありがとうございます</p>
+      </div>
+      <button class="btn-sub" onclick="resetRespond()">別の名前で回答する</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- RESULTS -->
+<div id="tab-results" class="tab-content">
+<div class="content">
+  <div class="card">
+    <span class="label">イベントIDで検索</span>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="results-event-id" placeholder="イベントIDを入力…" style="flex:1">
+      <button class="btn" style="width:auto;padding:10px 16px;font-size:13px" onclick="loadResults()">表示</button>
+    </div>
+  </div>
+  <div id="results-area">
+    <div class="card">
+      <div class="empty-state">イベントIDを入力して「表示」を押してください</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ====== SUPABASE CONFIG ======
+const SUPABASE_URL = 'https://pumpihusxtxffxhjzhfh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1bXBpaHVzeHR4ZmZ4aGp6aGZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDY0OTgsImV4cCI6MjA4OTI4MjQ5OH0.b1rW7mrOB_vwMbY9Sy1IWWfGYhn2MynDN2bM75YCqT8';
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || '',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ====== CALENDAR ======
+const DAYS = ['日','月','火','水','木','金','土'];
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+let curYear = new Date().getFullYear();
+let curMonth = new Date().getMonth();
+let selectedDates = [];
+let selectedSlots = [];
+let selectedMembers = [];
+let currentEventId = null;
+let currentEventDates = [];
+let myResps = {};
+
+function renderCalendar() {
+  document.getElementById('cal-title').textContent = curYear + '年 ' + MONTHS[curMonth];
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  DAYS.forEach(d => { const h = document.createElement('div'); h.className = 'cal-day-header'; h.textContent = d; grid.appendChild(h); });
+  const firstDay = new Date(curYear, curMonth, 1).getDay();
+  const dim = new Date(curYear, curMonth + 1, 0).getDate();
+  const prev = new Date(curYear, curMonth, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let i = 0; i < firstDay; i++) { const c = document.createElement('div'); c.className = 'cal-day other-month'; c.textContent = prev - firstDay + 1 + i; grid.appendChild(c); }
+  for (let d = 1; d <= dim; d++) {
+    const c = document.createElement('div');
+    const ds = curYear + '-' + String(curMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const thisDay = new Date(curYear, curMonth, d);
+    c.className = 'cal-day';
+    if (thisDay < today) c.classList.add('past');
+    if (thisDay.getTime() === today.getTime()) c.classList.add('today');
+    if (selectedDates.includes(ds)) c.classList.add('selected');
+    c.textContent = d;
+    c.onclick = () => toggleDate(ds, c);
+    grid.appendChild(c);
+  }
+}
+
+function toggleDate(ds, el) {
+  const i = selectedDates.indexOf(ds);
+  if (i > -1) { selectedDates.splice(i, 1); el.classList.remove('selected'); }
+  else { selectedDates.push(ds); el.classList.add('selected'); }
+  selectedDates.sort();
+  document.getElementById('sel-text').textContent = selectedDates.map(d => { const p = d.split('-'); const dt = new Date(+p[0],+p[1]-1,+p[2]); return p[1]+'月'+p[2]+'日('+DAYS[dt.getDay()]+')'; }).join('　');
+  document.getElementById('err-dates').style.display = 'none';
+}
+
+function changeMonth(dir) {
+  curMonth += dir;
+  if (curMonth > 11) { curMonth = 0; curYear++; }
+  if (curMonth < 0) { curMonth = 11; curYear--; }
+  renderCalendar();
+}
+
+function toggleChip(el, arr, val) {
+  el.classList.toggle('sel');
+  const i = arr.indexOf(val);
+  if (i > -1) arr.splice(i, 1); else arr.push(val);
+}
+
+// ====== CREATE EVENT ======
+async function publishEvent() {
+  let ok = true;
+  if (!document.getElementById('event-name').value.trim()) { document.getElementById('err-name').style.display = 'block'; ok = false; } else { document.getElementById('err-name').style.display = 'none'; }
+  if (selectedDates.length === 0) { document.getElementById('err-dates').style.display = 'block'; ok = false; } else { document.getElementById('err-dates').style.display = 'none'; }
+  if (!ok) return;
+
+  const btn = document.getElementById('publish-btn');
+  btn.disabled = true; btn.textContent = '作成中…';
+
+  try {
+    const data = await sbFetch('events?select=id', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: JSON.stringify({
+        name: document.getElementById('event-name').value.trim(),
+        dates: selectedDates,
+        slots: selectedSlots
+      })
+    });
+    const eventId = data[0].id;
+    const url = location.href.split('?')[0] + '?event=' + eventId;
+    document.getElementById('share-url').textContent = url;
+    document.getElementById('share-card').style.display = 'block';
+    document.getElementById('share-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch(e) {
+    alert('エラーが発生しました: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '共有リンクを発行する';
+}
+
+function copyUrl() {
+  navigator.clipboard.writeText(document.getElementById('share-url').textContent).catch(() => {});
+  const m = document.getElementById('copied-msg'); m.style.display = 'block';
+  setTimeout(() => m.style.display = 'none', 2000);
+}
+
+// ====== RESPOND ======
+async function loadEvent() {
+  const id = document.getElementById('event-id-input').value.trim();
+  if (!id) { document.getElementById('err-event-id').style.display = 'block'; return; }
+  document.getElementById('err-event-id').style.display = 'none';
+  try {
+    const data = await sbFetch('events?id=eq.' + id + '&select=*');
+    if (!data || data.length === 0) { alert('イベントが見つかりませんでした'); return; }
+    currentEventId = data[0].id;
+    currentEventDates = data[0].dates;
+    selectedSlots = data[0].slots || [];
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = 'block';
+  } catch(e) { alert('読み込みエラー: ' + e.message); }
+}
+
+function goStep3() {
+  const name = document.getElementById('resp-name').value.trim();
+  if (!name) { document.getElementById('err-resp-name').style.display = 'block'; return; }
+  document.getElementById('err-resp-name').style.display = 'none';
+  document.getElementById('who-badge').textContent = name + ' さんの回答';
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step3').style.display = 'block';
+  myResps = {};
+  renderDateRows();
+}
+
+function renderDateRows() {
+  const container = document.getElementById('date-rows');
+  container.innerHTML = '';
+  updateProg();
+  currentEventDates.forEach(d => {
+    const p = d.split('-');
+    const dt = new Date(+p[0], +p[1]-1, +p[2]);
+    const label = p[1]+'月'+p[2]+'日（'+DAYS[dt.getDay()]+'）';
+    const timeLabel = selectedSlots.length > 0 ? selectedSlots.join('・') : '';
+    const row = document.createElement('div');
+    row.className = 'date-row';
+    row.innerHTML = `<div><div class="date-text">${label}</div>${timeLabel ? '<div class="date-time">'+timeLabel+'</div>' : ''}</div><div class="resp-group"><button class="resp-btn" id="ok-${d}" onclick="setResp('${d}','ok')">○</button><button class="resp-btn" id="maybe-${d}" onclick="setResp('${d}','maybe')">△</button><button class="resp-btn" id="ng-${d}" onclick="setResp('${d}','ng')">×</button></div>`;
+    container.appendChild(row);
+  });
+}
+
+function setResp(date, val) {
+  myResps[date] = val;
+  updateProg();
+  ['ok','maybe','ng'].forEach(cls => { const btn = document.getElementById(cls+'-'+date); if (btn) { btn.className = 'resp-btn'; if (val === cls) btn.classList.add(cls); } });
+}
+
+function updateProg() {
+  const answered = currentEventDates.filter(d => myResps[d]).length;
+  const pct = currentEventDates.length > 0 ? Math.round((answered / currentEventDates.length) * 100) : 0;
+  document.getElementById('prog-text').textContent = answered + ' / ' + currentEventDates.length + ' 件回答済み';
+  document.getElementById('prog-fill').style.width = pct + '%';
+}
+
+async function submitResponse() {
+  const name = document.getElementById('resp-name').value.trim();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '送信中…';
+  try {
+    const rows = currentEventDates.map(d => ({ event_id: currentEventId, member_name: name, date: d, answer: myResps[d] || 'ng' }));
+    await sbFetch('responses', { method: 'POST', body: JSON.stringify(rows) });
+    document.getElementById('step3').style.display = 'none';
+    document.getElementById('step4').style.display = 'block';
+  } catch(e) { alert('送信エラー: ' + e.message); }
+  btn.disabled = false; btn.textContent = '回答を送信する';
+}
+
+function resetRespond() {
+  document.getElementById('resp-name').value = '';
+  myResps = {};
+  document.getElementById('step4').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+}
+
+// ====== RESULTS ======
+async function loadResults() {
+  const id = document.getElementById('results-event-id').value.trim();
+  if (!id) return;
+  document.getElementById('results-area').innerHTML = '<div class="card"><div class="loading">読み込み中…</div></div>';
+  try {
+    const [eventData, respData] = await Promise.all([
+      sbFetch('events?id=eq.' + id + '&select=*'),
+      sbFetch('responses?event_id=eq.' + id + '&select=*')
+    ]);
+    if (!eventData || eventData.length === 0) { document.getElementById('results-area').innerHTML = '<div class="card"><div class="empty-state">イベントが見つかりませんでした</div></div>'; return; }
+    const event = eventData[0];
+    const dates = event.dates;
+    const allRespondents = [...new Set(respData.map(r => r.member_name))];
+    const total = allRespondents.length || 1;
+
+    let tableRows = '';
+    dates.forEach(d => {
+      const p = d.split('-');
+      const dt = new Date(+p[0],+p[1]-1,+p[2]);
+      const label = p[1]+'月'+p[2]+'日（'+DAYS[dt.getDay()]+'）';
+      const dayResp = respData.filter(r => r.date === d);
+      const ok = dayResp.filter(r => r.answer === 'ok').length;
+      const maybe = dayResp.filter(r => r.answer === 'maybe').length;
+      const pct = allRespondents.length > 0 ? Math.round((ok / allRespondents.length) * 100) : 0;
+      tableRows += `<tr><td style="font-weight:500">${label}</td><td style="color:var(--navy);font-weight:500">${ok}人</td><td style="color:var(--gold)">${maybe}人</td><td><div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div></td><td><span class="badge ${pct>=60?'badge-ok':'badge-warn'}">${pct>=60?'候補':'再調整'}</span></td></tr>`;
+    });
+
+    const avatars = allRespondents.map(n => `<div class="avatar" title="${n}">${n.slice(0,2)}</div>`).join('');
+
+    document.getElementById('results-area').innerHTML = `
+      <div class="card"><div style="font-size:15px;font-weight:500;color:var(--navy);margin-bottom:12px">${event.name}</div>
+      <table class="results-table"><thead><tr><th>日付</th><th>○</th><th>△</th><th>割合</th><th></th></tr></thead><tbody>${tableRows}</tbody></table></div>
+      <div class="card"><span class="label">回答済みメンバー（${allRespondents.length}名）</span><div class="avatars">${avatars || '<span style="font-size:13px;color:var(--muted)">まだ回答がありません</span>'}</div></div>`;
+  } catch(e) { document.getElementById('results-area').innerHTML = '<div class="card"><div class="empty-state">読み込みエラー: ' + e.message + '</div></div>'; }
+}
+
+// ====== TABS ======
+function showTab(tab, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  el.classList.add('active');
+}
+
+// ====== URL PARAM ======
+function checkUrlParam() {
+  const params = new URLSearchParams(location.search);
+  const eventId = params.get('event');
+  if (eventId) {
+    document.getElementById('event-id-input').value = eventId;
+    document.getElementById('results-event-id').value = eventId;
+    document.querySelectorAll('.tab-btn')[1].click();
+    loadEvent();
+  }
+}
+
+renderCalendar();
+checkUrlParam();
+</script>
+</body>
+</html>
